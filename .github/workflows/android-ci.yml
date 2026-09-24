@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Lint, test, and build debug APK
+    name: Test and build APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -38,6 +38,54 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Verify unit test results
+        if: always()
+        run: |
+          set -euo pipefail
+          results_dir="app/build/test-results/testDebugUnitTest"
+          if [ ! -d "$results_dir" ]; then
+            echo "No unit test results directory at $results_dir" >&2
+            exit 1
+          fi
+          echo "### Unit test results" >> "$GITHUB_STEP_SUMMARY"
+          python3 - "$results_dir" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import glob, os, sys, xml.etree.ElementTree as ET
+
+          results_dir = sys.argv[1]
+          files = sorted(glob.glob(os.path.join(results_dir, "*.xml")))
+          if not files:
+              raise SystemExit("No JUnit XML results were produced")
+
+          totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+          for path in files:
+              suite = ET.parse(path).getroot()
+              for key in totals:
+                  totals[key] += int(suite.get(key, 0) or 0)
+              print(
+                  "- {}: tests={} failures={} errors={} skipped={}".format(
+                      suite.get("name"),
+                      suite.get("tests"),
+                      suite.get("failures"),
+                      suite.get("errors"),
+                      suite.get("skipped"),
+                  )
+              )
+          print(
+              "Total: tests={tests} failures={failures} errors={errors} skipped={skipped}".format(**totals)
+          )
+          if totals["tests"] == 0 or totals["failures"] or totals["errors"]:
+              raise SystemExit("Unit test verification failed")
+          PY
+          cat "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: app/build/test-results/testDebugUnitTest/*.xml
+          if-no-files-found: error
 
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
