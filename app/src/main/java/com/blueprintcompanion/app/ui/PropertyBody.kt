@@ -100,7 +100,7 @@ private fun PlanCard(property: PropertyEntity, onPick: () -> Unit, onClear: () -
                 }
             } else {
                 Button(onClick = onPick) {
-                    Icon(ImageIcon, contentDescription = null)
+                    Icon(Icons.Filled.ImageIcon, contentDescription = null)
                     Text("  Attach plan")
                 }
             }
