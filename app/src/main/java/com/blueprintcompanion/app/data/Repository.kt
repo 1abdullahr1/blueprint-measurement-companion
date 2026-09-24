@@ -39,12 +39,14 @@ class Repository(private val context: Context) {
 
     suspend fun savePlan(propertyId: Long, source: Uri): String {
         val dir = File(context.filesDir, "plans").apply { mkdirs() }
+        val previousPlan = properties.getById(propertyId)?.planImagePath
         val dest = File(dir, "plan-$propertyId-${UUID.randomUUID()}.jpg")
         context.contentResolver.openInputStream(source).use { input ->
             requireNotNull(input) { "Could not read the selected image." }
             dest.outputStream().use { output -> input.copyTo(output) }
         }
         properties.updatePlan(propertyId, dest.absolutePath)
+        previousPlan?.takeIf { it != dest.absolutePath }?.let { File(it).delete() }
         return dest.absolutePath
     }
 

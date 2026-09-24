@@ -38,6 +38,7 @@ fun PropertyDetailScreen(
     var editingProperty by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<SpaceEntity?>(null) }
     var creatingSpace by remember { mutableStateOf(false) }
+    var deletingProperty by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) viewModel.attachPlan(propertyId, uri)
@@ -56,12 +57,7 @@ fun PropertyDetailScreen(
                 actions = {
                     if (current != null) {
                         TextButton(onClick = { editingProperty = true }) { Text("Edit") }
-                        IconButton(
-                            onClick = {
-                                viewModel.deleteProperty(current)
-                                onBack()
-                            }
-                        ) {
+                        IconButton(onClick = { deletingProperty = true }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete property")
                         }
                     }
@@ -92,6 +88,19 @@ fun PropertyDetailScreen(
         }
     }
 
+    if (deletingProperty && current != null) {
+        ConfirmDialog(
+            title = "Delete ${current.name}?",
+            message = "This removes the property, its rooms, and its floor plan reference.",
+            onDismiss = { deletingProperty = false },
+            onConfirm = {
+                deletingProperty = false
+                viewModel.deleteProperty(current)
+                onBack()
+            }
+        )
+    }
+
     if (editingProperty && current != null) {
         PropertyDialog(
             title = "Edit property",
@@ -105,6 +114,7 @@ fun PropertyDetailScreen(
             }
         )
     }
+
     if (creatingSpace) {
         SpaceDialog(
             title = "Add room",
@@ -117,6 +127,7 @@ fun PropertyDetailScreen(
             }
         )
     }
+
     editingSpace?.let { space ->
         SpaceDialog(
             title = "Edit room",

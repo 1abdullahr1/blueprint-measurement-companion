@@ -14,6 +14,9 @@ interface PropertyDao {
     @Query("SELECT * FROM properties WHERE id = :id")
     fun observe(id: Long): Flow<PropertyEntity?>
 
+    @Query("SELECT * FROM properties WHERE id = :id")
+    suspend fun getById(id: Long): PropertyEntity?
+
     @Insert
     suspend fun insert(property: PropertyEntity): Long
 
